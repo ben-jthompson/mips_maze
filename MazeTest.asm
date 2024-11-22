@@ -11,9 +11,11 @@ numColumns:		.word 4
 numRows:		.word 3
 
 command: 		.asciiz "Enter a direction: R for right, L for left, F for forward, B for backward:\n" 		#movement message
-invalid:   		.asciiz "Invalid move!Try Again...\n"  	
-wall:			.asciiz "You hit a wall! Reverse your move to get out.\n"							#invalid command message
+invalid:   		.asciiz "Invalid move!Try Again...\n"  								#invalid command message
+wall:			.asciiz "You hit a wall! Reverse your move to get out.\n"					
 boundary:		.asciiz "Out of Bounds! Stay inside the maze.\n"
+step:			.asciiz "\nTotal number of moves: "
+mistake:		.asciiz "\nNumber of Mistakes: "
 victory:		.asciiz "Congratualtions! You reached the exit."						#Message on completion
 
 			.text
@@ -66,26 +68,37 @@ main:
 	forwardMove:
 		add $t2, $t2, 1         # this will increase the column index by 1
 		move $s6, $t3           # this will track last move as 'f'
-		j checkBound		# jump to checkBound function
+		j increaseStepCounter  	# Jump to increaseStepCounter
 
 
 	backwardMove:
 		sub $t2, $t2, 1         # this will decrease the column index by 1
 		move $s6, $t3           # this will track last move as 'b'
-		j checkBound
+		j increaseStepCounter
 
 
 	rightwardMove:
 		add $t1, $t1, 1         # this will increase the row index by 1
 		move $s6, $t3           # this will track last move as 'r'
-		j checkBound
+		j increaseStepCounter
 
 
 	leftwardMove:
 		sub $t1, $t1, 1         # this will decrease the row index by 1
 		move $s6, $t3           # this will track last move as 'l'
-		j checkBound
+		j increaseStepCounter
 		
+	
+	increaseStepCounter:
+		lw $t4, step_counter	# loading step_counter into $t4
+		addi $t4, $t4, 1 	# increasing the step_counter by 1
+		sw $t4, step_counter	# store updated step counter 
+		j checkBound		# jump to checkBound
+	
+	
+	
+	
+	
 	
 	checkBound:
 		bltz $t1, rejectMove 		#If row < 0 jump to rejectmove
@@ -100,6 +113,11 @@ main:
 		
 
 	rejectMove: #If on boundary reject last move
+		lw $t4, mistake_counter		# loading mistake_counter into $t4
+		addi $t4, $t4, 1 		# increase mistake counter by 1
+		sw $t4, mistake_counter 	# store updated mistake counter
+		
+		
 		li $v0, 4
 		la $a0, boundary		#print boundary message
 		syscall
@@ -147,6 +165,10 @@ main:
 		
 	
 	inWall: 			#the idea of this function is to add robustness to the code. If the user enters a wall they will stay their until they enter the correct reverse command.
+		lw $t4, mistake_counter		# loading mistake_counter into $t4
+		addi $t4, $t4, 1 		# increase mistake counter by 1
+		sw $t4, mistake_counter 	# store updated mistake counter
+		
 		li $v0, 4		#Re-promt for the user's input
 		la $a0, wall
 		syscall
@@ -191,7 +213,25 @@ main:
 		li $v0, 4
 		la $a0, victory
 		syscall
+		
+		li $v0, 4		#printing mistake message
+		la $a0, mistake
+		syscall
+		
+		lw $a0, mistake_counter	#printing number of mistakes
+		li $v0, 1
+		syscall
+		
+		li $v0, 4		#printing step message
+		la $a0, step
+		syscall
+		
+		lw $a0, step_counter	#printing number of steps
+		li $v0, 1
+		syscall
+		
 		j done
+
 
 	done:
 					# Exit program
