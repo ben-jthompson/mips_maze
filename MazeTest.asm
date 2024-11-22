@@ -8,9 +8,12 @@ step_counter:		.word 0
 mistake_counter: 	.word 0
 wallState:		.word 1
 numColumns:		.word 4
+numRows:		.word 3
 
 command: 		.asciiz "Enter a direction: R for right, L for left, F for forward, B for backward:\n" 		#movement message
-invalid:   		.asciiz "Invalid move!Try Again...\n"  								#invalid command message
+invalid:   		.asciiz "Invalid move!Try Again...\n"  	
+wall:			.asciiz "You hit a wall! Reverse your move to get out.\n"							#invalid command message
+boundary:		.asciiz "Out of Bounds! Stay inside the maze.\n"
 victory:		.asciiz "Congratualtions! You reached the exit."						#Message on completion
 
 			.text
@@ -63,26 +66,67 @@ main:
 	forwardMove:
 		add $t2, $t2, 1         # this will increase the column index by 1
 		move $s6, $t3           # this will track last move as 'f'
-		j checkPosition		# the check if this move is allowed it will jump to the checkPosition function
+		j checkBound		# jump to checkBound function
 
 
 	backwardMove:
 		sub $t2, $t2, 1         # this will decrease the column index by 1
 		move $s6, $t3           # this will track last move as 'b'
-		j checkPosition
+		j checkBound
 
 
 	rightwardMove:
 		add $t1, $t1, 1         # this will increase the row index by 1
 		move $s6, $t3           # this will track last move as 'r'
-		j checkPosition
+		j checkBound
 
 
 	leftwardMove:
 		sub $t1, $t1, 1         # this will decrease the row index by 1
 		move $s6, $t3           # this will track last move as 'l'
-		j checkPosition
+		j checkBound
 		
+	
+	checkBound:
+		bltz $t1, rejectMove 		#If row < 0 jump to rejectmove
+		lw $t4, numRows
+		bge $t1, $t4, rejectMove 	#If row >= numRows jump to rejectMove
+		
+		bltz $t2, rejectMove 		#If col < 0 jump to rejectMove
+		lw $t4, numColumns
+		bge $t2, $t4, rejectMove 	#If col >= numcols jump to rejectmove
+		
+		j checkPosition			#If within bounds jump to checkPosition
+		
+
+	rejectMove: #If on boundary reject last move
+		li $v0, 4
+		la $a0, boundary		#print boundary message
+		syscall
+		
+		beq $s6, 'f', rejectForward	
+		beq $s6, 'b', rejectBack
+		beq $s6, 'r', rejectRight
+		beq $s6, 'l', rejectLeft
+		
+		j while   			# jump to main loop
+		
+	rejectForward: #Undo forward move
+		sub $t2, $t2, 1
+		j while	
+		
+	rejectBack: #Undo back move
+		sub $t2, $t2, 1
+		j while	
+	
+	rejectRight: #Undo right  move
+		sub $t1, $t1, 1
+		j while					
+																																										
+	rejectLeft: #Undo left move
+		sub $t1, $t1, 1
+		j while	
+	
 	checkPosition:			#calulating the desired target index position in our maze
 					
 		lw $t5, numColumns  	#first part of the equation 'index = (rows * numColumns) + columns'
@@ -104,7 +148,7 @@ main:
 	
 	inWall: 			#the idea of this function is to add robustness to the code. If the user enters a wall they will stay their until they enter the correct reverse command.
 		li $v0, 4		#Re-promt for the user's input
-		la $a0, invalid
+		la $a0, wall
 		syscall
 		
 		li $v0, 12		#Retrieves an integer from the user
