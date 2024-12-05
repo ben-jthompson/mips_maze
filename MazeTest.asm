@@ -1,22 +1,33 @@
 			.data	
-maze: 			.word 1,1,9,1
-			.word 1,1,0,1
-			.word 0,0,0,1
+maze: 			.word 1,1,1,1,1,1,1,1,1,9,1
+			.word 1,0,0,0,1,0,0,0,0,0,1
+			.word 1,1,1,0,1,1,1,0,1,1,1
+			.word 1,0,0,0,0,0,1,0,1,0,1
+			.word 1,0,1,0,1,1,1,0,1,0,1
+			.word 1,0,1,0,0,0,0,0,1,0,1
+			.word 1,1,1,1,1,0,1,1,1,0,1
+			.word 1,0,0,0,0,0,1,0,0,0,1
+			.word 1,0,1,0,1,0,1,1,1,0,1
+			.word 1,0,1,0,1,0,0,0,0,0,1
+			.word 1,1,1,0,1,1,1,0,1,1,1
+			.word 0,0,0,0,0,0,1,0,0,0,1
+			.word 1,1,1,1,1,1,1,1,1,1,1
 
-start:			.word 2,0 	#represented as a 1D array, also the same as the position tracker (row, column)
+start:			.word 11, -1 	#represented as a 1D array, also the same as the position tracker (row, column)
 step_counter:		.word 0
 mistake_counter: 	.word 0
 wallState:		.word 1
-numColumns:		.word 4
-numRows:		.word 3
+numColumns:		.word 11
+numRows:		.word 13
 
-command: 		.asciiz "Enter a direction: R for right, L for left, F for forward, B for backward:\n" 		#movement message
-invalid:   		.asciiz "Invalid move!Try Again...\n"  								#invalid command message
-wall:			.asciiz "You hit a wall! Reverse your move to get out.\n"					
-boundary:		.asciiz "Out of Bounds! Stay inside the maze.\n"
+command: 		.asciiz "\nEnter a direction: r for right, l for left, f for forward, b for backward:\n" 		#movement message
+invalid:   		.asciiz "\nInvalid move! Try Again...\n"  								#invalid command message
+invalid_wall:		.asciiz "\nInvalid move! Reverse your move to get out.\n"
+wall:			.asciiz "\nYou hit a wall! Reverse your move to get out.\n"					
+boundary:		.asciiz "\nOut of Bounds! Stay inside the maze.\n"
 step:			.asciiz "\nTotal number of moves: "
 mistake:		.asciiz "\nNumber of Mistakes: "
-victory:		.asciiz "Congratualtions! You reached the exit."						#Message on completion
+victory:		.asciiz "\nCongratualtions! You reached the exit."						#Message on completion
 
 			.text
 			.globl main
@@ -44,7 +55,7 @@ main:
 	syscall
 	
 					#store the value
-	move $t3, $v0 			#Because we don't want to lose track of the value in $v0 (it is a common register used often) we will move the contents to register $t0. This contains the player's move
+	move $t3, $v0 			#Because we don't want to lose track of the value in $v0 (it is a common register used often) we will move the contents to register $t3. This contains the player's move
 	
 					#now we need to do a much of if statements in MIPS32 to see what kind of move was inputted
 	li $t4, 'f' 			#this will load the value 'f' into the contents of register $t1. 'f' is converted into hex via the ascii table
@@ -134,7 +145,7 @@ main:
 		j while	
 		
 	rejectBack: #Undo back move
-		sub $t2, $t2, 1
+		addi $t2, $t2, 1
 		j while	
 	
 	rejectRight: #Undo right  move
@@ -142,7 +153,7 @@ main:
 		j while					
 																																										
 	rejectLeft: #Undo left move
-		sub $t1, $t1, 1
+		addi $t1, $t1, 1
 		j while	
 	
 	checkPosition:			#calulating the desired target index position in our maze
@@ -158,20 +169,28 @@ main:
 		
 					
 		lw $s4, 0($s3)		#now we need to load the value of the item at the index we want so that we can run comparisons on it
-		beq $s4, $s5 inWall	#if the destination value is 1 and equals the wallstate variable then it will branch to the inWall block of code
+		beq $s4, $s5 inWallStr	#if the destination value is 1 and equals the wallstate variable then it will branch to the inWall block of code
 		beq $s4, 9 exitMaze
 		
 		j while 		#else it returns to our original while loop for the next move
 		
 	
+	inWallStr:
+		li $v0, 4		#Re-promt for the user's input
+		la $a0, wall
+		syscall
+		j inWall
+	
+	invalidStr:
+		li $v0, 4
+		la $a0 invalid_wall
+		syscall
+		j inWall
+	
 	inWall: 			#the idea of this function is to add robustness to the code. If the user enters a wall they will stay their until they enter the correct reverse command.
 		lw $t4, mistake_counter		# loading mistake_counter into $t4
 		addi $t4, $t4, 1 		# increase mistake counter by 1
 		sw $t4, mistake_counter 	# store updated mistake counter
-		
-		li $v0, 4		#Re-promt for the user's input
-		la $a0, wall
-		syscall
 		
 		li $v0, 12		#Retrieves an integer from the user
 		syscall
@@ -189,25 +208,25 @@ main:
 		j inWall		#if none of the inputs are correct, the code will jump back to the beginning of the inWall function and re ask promts unil the user selects the correct reversal move
 		
 	checkBackward:
-		bne $t3, 'b', inWall  	#checks to see if the current input is equal to what the correct reversal command is, if it isn't it will run the 'inWall' loop until it is satisfied
+		bne $t3, 'b', invalidStr	#checks to see if the current input is equal to what the correct reversal command is, if it isn't it will run the 'inWall' loop until it is satisfied
 		sub $t2, $t2, 1       	#carries out the backward move
 		j while	
 	
 	checkForward:
-		bne $t3, 'f', inWall  	#checks to see if the current input is equal to what the correct reversal command is, if it isn't it will run the 'inWall' loop until it is satisfied
+		bne $t3, 'f', invalidStr 	#checks to see if the current input is equal to what the correct reversal command is, if it isn't it will run the 'inWall' loop until it is satisfied
 		add $t2, $t2, 1       	#carries out the forward move
 		j while
 
 	checkLeftward:
-		bne $t3, 'l', inWall  	#checks to see if the current input is equal to what the correct reversal command is, if it isn't it will run the 'inWall' loop until it is satisfied
-		add $t1, $t1, 1       	#carries out the leftward move
+		bne $t3, 'l', invalidStr 	#checks to see if the current input is equal to what the correct reversal command is, if it isn't it will run the 'inWall' loop until it is satisfied
+		sub $t1, $t1, 1       	#carries out the leftward move
 		j while
 
 	checkRightward:
-		bne $t3, 'r', inWall  	#checks to see if the current input is equal to what the correct reversal command is, if it isn't it will run the 'inWall' loop until it is satisfied
-		sub $t1, $t1, 1       	#carries out the rightward move
+		bne $t3, 'r', invalidStr 	#checks to see if the current input is equal to what the correct reversal command is, if it isn't it will run the 'inWall' loop until it is satisfied
+		add $t1, $t1, 1       	#carries out the rightward move
 		j while	
-
+	
 	exitMaze:
 					#checks to see if the current input is equal to what the correct reversal command is, if it isn't it will run the 'inWall' loop until it is satisfied
 		li $v0, 4
