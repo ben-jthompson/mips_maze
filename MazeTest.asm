@@ -20,6 +20,7 @@ wallState:		.word 1
 numColumns:		.word 11
 numRows:		.word 13
 
+start_str:		.asciiz "\nEnter direction: f to move into the maze!"
 command: 		.asciiz "\nEnter a direction: r for right, l for left, f for forward, b for backward:\n" 		#movement message
 invalid:   		.asciiz "\nInvalid move! Try Again...\n"  								#invalid command message
 invalid_wall:		.asciiz "\nInvalid move! Reverse your move to get out.\n"
@@ -27,7 +28,7 @@ wall:			.asciiz "\nYou hit a wall! Reverse your move to get out.\n"
 boundary:		.asciiz "\nOut of Bounds! Stay inside the maze.\n"
 step:			.asciiz "\nTotal number of moves: "
 mistake:		.asciiz "\nNumber of Mistakes: "
-victory:		.asciiz "\nCongratualtions! You reached the exit."						#Message on completion
+victory:		.asciiz "\nCongratulations! You reached the exit."						#Message on completion
 
 			.text
 			.globl main
@@ -43,6 +44,10 @@ main:
  	
  					#initialise the wallstate 
  	lw $s5, wallState
+ 	
+ 	li $v0, 4
+ 	la $a0, start_str
+ 	syscall
  	
 	while: beq $s0, $s1, done	#If register $s0 is equal to register $s1 it will branch to the label 'done:' 
 					#get prompt from user
