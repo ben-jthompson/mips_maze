@@ -20,7 +20,7 @@ wallState:		.word 1
 numColumns:		.word 11
 numRows:		.word 13
 
-start_str:		.asciiz "\nEnter direction: f to move into the maze!"
+start_str:		.asciiz "\nWelcome to the MIPS Maze Solver!\nEnter direction: f to move into the maze!"
 command: 		.asciiz "\nEnter a direction: r for right, l for left, f for forward, b for backward:\n" 		#movement message
 invalid:   		.asciiz "\nInvalid move! Try Again...\n"  								#invalid command message
 invalid_wall:		.asciiz "\nInvalid move! Reverse your move to get out.\n"
