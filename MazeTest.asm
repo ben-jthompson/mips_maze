@@ -187,6 +187,9 @@ main:
 		j inWall
 	
 	invalidStr:
+		lw $t4, step_counter	# loading step_counter into $t4
+		addi $t4, $t4, 1 	# increasing the step_counter by 1
+		sw $t4, step_counter	# store updated step counter 
 		li $v0, 4
 		la $a0 invalid_wall
 		syscall
